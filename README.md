@@ -169,10 +169,10 @@ ggplot(results_df_rf, aes(x = Actual, y = Predicted)) +
 
 ## Conclusion
 
-In this blog post, we embarked on a journey to predict taxi fare prices using machine learning. We explored the XGBoost and Random Forest algorithms, performed data preprocessing, trained models, and evaluated their performance. Through visualization, we compared actual and predicted fare values, gaining insights into the effectiveness of our models.
+In this post, we embarked on a journey to predict taxi fare prices using machine learning. We explored the XGBoost and Random Forest algorithms, performed data preprocessing, trained models, and evaluated their performance. Through visualization, we compared actual and predicted fare values, gaining insights into the effectiveness of our models.
 
-Both XGBoost and Random Forest demonstrated their capabilities in predicting taxi fares, with XGBoost achieving an RMSE of 0.999 and Random Forest achieving an RMSE of 11.575. As you continue to explore the world of machine learning, don't hesitate to experiment with different algorithms, hyperparameters, and preprocessing techniques to further enhance your predictive models.
+Both XGBoost and Random Forest demonstrated their capabilities in predicting taxi fares, with XGBoost achieving an RMSE of 0.999 and Random Forest achieving an RMSE of 11.575. As I continue to explore the world of machine learning, will experiment with different algorithms, hyperparameters, and preprocessing techniques to further enhance my predictive models.
 
-Thank you for joining us on this journey, and happy coding!
+Thank you for joining me on this journey, and happy coding!
 
 ---
