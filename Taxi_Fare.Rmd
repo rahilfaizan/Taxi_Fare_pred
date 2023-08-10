@@ -1,0 +1,146 @@
+---
+title: "Taxi fare"
+author: "Rahil"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Taxi Fare Prediction using XGBoost
+
+### In this R Markdown document, we aim to predict taxi fare prices using a dataset obtained from Kaggle - https://www.kaggle.com/datasets/raviiloveyou/predict-taxi-fare-with-a-bigquery-ml-forecasting. The dataset contains various features such as trip_duration, passenger counts, distance_traveled, fare, tips, misc-fare and total fare We will utilize the powerful XGBoost algorithm, which is an implementation of gradient boosting, to create a predictive model.
+
+The libraries we are going to use:
+
+```{r}
+shut_up <- suppressPackageStartupMessages
+shut_up(library(xgboost))
+shut_up(library(tidyverse))
+shut_up(library(ggplot2))
+shut_up(library(plotly))
+shut_up(library(dplyr))
+```
+### Data Exploration and Preprocessing:
+We will start by loading and exploring the dataset to gain insights into its structure and quality. Any missing data or outliers will be handled through appropriate preprocessing techniques to ensure the data is suitable for training the model.
+```{r}
+data_org <- read.csv("C:/Users/rahil/Downloads/archive (20)/taxi_fare/train.csv")
+test_act_df <- read.csv("C:/Users/rahil/Downloads/archive (20)/taxi_fare/test.csv")
+```
+
+```{r}
+set.seed(1234)
+data_org <- data_org[sample(1:nrow(data_org)), ]
+```
+
+```{r}
+sum(is.na(data_org))
+```
+
+```{r}
+nrow(filter(data_org, fare == 0))
+df <- filter(data_org, fare != 0)
+```
+
+```{r}
+no_need <- c('tip', 'miscellaneous_fees','total_fare')
+data_org<- select(data_org, -no_need)
+```
+Train-Test Split: To assess the model's performance, we will split the dataset into training and testing sets. The model will be trained on the training set and then evaluated on the test set to ensure it generalizes well to new, unseen data.
+```{r}
+data_mat <- as.matrix(data_org)
+
+train_data <- data_mat[1:146771, ]
+test_data <- data_mat[-(1:146771), ]
+
+train_labels <- data_org$fare[1:146771]
+test_labels <- data_org$fare[-(1:146771)]
+```
+
+```{r}
+dtrain <- xgb.DMatrix(data = train_data, label= train_labels)
+dtest <- xgb.DMatrix(data = test_data, label= test_labels)
+```
+XGBoost Model Training: Using the XGBoost package in R, we will define the model's hyperparameters and train the algorithm on the training data. The model's performance will be monitored during the training process.
+```{r}
+model <- xgboost(data = dtrain,    # the data
+                 nround = 1000,      # max number of boosting iterations
+                 objective = "reg:squarederror",
+                 print_every_n = 500)
+
+```
+Model Evaluation: We will evaluate the trained XGBoost model using appropriate evaluation metrics such as Root Mean Squared Error (RMSE) or Mean Absolute Error (MAE) to measure its accuracy in predicting taxi fare prices.
+```{r}
+pred <- predict(model, dtest)
+
+err <- mean(as.numeric(pred > 0.5) != test_labels)
+print(paste("test-error=", err))
+```
+Hyperparameter Tuning: To optimize the model's performance, we will perform hyperparameter tuning.
+```{r}
+watchlist = list(train=dtrain, test=dtest)
+model_tuned <- xgb.train(data = dtrain, 
+                        max.depth=3, 
+                        eta = 0.01, 
+                        nthread = 3, 
+                        nround = 5000, 
+                        watchlist = watchlist, 
+                        objective = "reg:squarederror", 
+                        early_stopping_rounds = 50,
+                        print_every_n = 500)
+
+# generate predictions for our held-out testing data
+pred <- predict(model_tuned, dtest)
+
+# get & print the classification error
+err <- mean(as.numeric(pred > 0.5) != test_labels)
+print(paste("test-error=", err))
+```
+
+```{r}
+# Convert the test labels and predictions to a data frame
+results_df <- data.frame(Actual = test_labels, Predicted = as.numeric(pred))
+
+# Create a scatter plot to visualize the actual vs. predicted fare values
+ggplot(results_df, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "blue", alpha = 0.6) +  #  +   # Red for predicted values
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "black") +
+  labs(x = "Actual Fare", y = "Predicted Fare", title = "Actual vs. Predicted Fare Prices") +
+  theme_minimal()
+```
+```{r}
+# Load the required library
+library(randomForest)
+
+# Train the Random Forest model
+model_rf <- randomForest(
+  x = train_data,
+  y = train_labels,
+  ntree = 500,       # Number of trees (you can adjust this value as needed)
+  mtry = sqrt(ncol(train_data)),   # Number of features considered at each split (default is sqrt(p))
+  importance = TRUE  # Calculate variable importance
+)
+
+# Generate predictions for the test data
+pred_rf <- predict(model_rf, newdata = test_data)
+
+# Calculate RMSE for the Random Forest predictions
+test_rmse_rf <- sqrt(mean((test_labels - pred_rf)^2))
+print("Test RMSE for Random Forest:")
+print(test_rmse_rf)
+
+```
+
+```{r}
+# Convert the test labels and predictions to a data frame
+results_df_rf <- data.frame(Actual = test_labels, Predicted = as.numeric(pred_rf))
+
+# Create a scatter plot to visualize the actual vs. predicted fare values
+ggplot(results_df_rf, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "blue", alpha = 0.6) +  #  +   # Red for predicted values
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "black") +
+  labs(x = "Actual Fare", y = "Predicted Fare", title = "Actual vs. Predicted Fare Prices") +
+  theme_minimal()
+```
